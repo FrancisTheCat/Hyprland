@@ -10,6 +10,7 @@
 #include "../helpers/MiscFunctions.hpp"
 #include "../config/ConfigValue.hpp"
 #include "../config/ConfigManager.hpp"
+#include "../managers/PointerManager.hpp"
 #include "../desktop/LayerSurface.hpp"
 #include "../protocols/LayerShell.hpp"
 #include "../protocols/core/Compositor.hpp"
@@ -1227,9 +1228,10 @@ void CHyprOpenGLImpl::applyScreenShader(const std::string& path) {
         return;
     }
 
-    m_finalScreenShader.proj = glGetUniformLocation(m_finalScreenShader.program, "proj");
-    m_finalScreenShader.tex  = glGetUniformLocation(m_finalScreenShader.program, "tex");
-    m_finalScreenShader.time = glGetUniformLocation(m_finalScreenShader.program, "time");
+    m_finalScreenShader.pointer_position = glGetUniformLocation(m_finalScreenShader.program, "pointer_position");
+    m_finalScreenShader.proj             = glGetUniformLocation(m_finalScreenShader.program, "proj");
+    m_finalScreenShader.tex              = glGetUniformLocation(m_finalScreenShader.program, "tex");
+    m_finalScreenShader.time             = glGetUniformLocation(m_finalScreenShader.program, "time");
     if (m_finalScreenShader.time != -1)
         m_finalScreenShader.initialTime = m_globalTimer.getSeconds();
     m_finalScreenShader.wl_output = glGetUniformLocation(m_finalScreenShader.program, "wl_output");
@@ -1552,7 +1554,7 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     glTexParameteri(tex->m_target, GL_TEXTURE_WRAP_S, wrapX);
     glTexParameteri(tex->m_target, GL_TEXTURE_WRAP_T, wrapY);
 
-    if (m_renderData.useNearestNeighbor) {
+    if (m_renderData.useNearestNeighbor && !usingFinalShader) {
         glTexParameteri(tex->m_target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(tex->m_target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     } else {
@@ -1587,6 +1589,11 @@ void CHyprOpenGLImpl::renderTextureInternalWithDamage(SP<CTexture> tex, const CB
     } else if (usingFinalShader && shader->time != -1) {
         // Don't let time be unitialised
         glUniform1f(shader->time, 0.f);
+    }
+
+    if (usingFinalShader && shader->pointer_position != -1) {
+        Vector2D p = g_pPointerManager->position();
+        glUniform2f(shader->pointer_position, p.x, p.y);
     }
 
     if (usingFinalShader && shader->wl_output != -1)

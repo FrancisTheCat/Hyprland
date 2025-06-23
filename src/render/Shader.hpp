@@ -8,6 +8,7 @@ struct SShader {
 
     GLuint  program           = 0;
     GLint   proj              = -1;
+    GLint   pointer_position  = -1;
     GLint   color             = -1;
     GLint   alphaMatte        = -1;
     GLint   texType           = -1;
